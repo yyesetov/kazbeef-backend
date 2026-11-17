@@ -30,6 +30,17 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # за обратным прокси (Caddy, nginx): схема https и адрес клиента берутся из заголовков X-Forwarded-*
+  forward-headers-strategy: framework
+  servlet:
+    session:
+      cookie:
+        # Интерфейс на другом домене (Cloudflare Workers): SESSION_COOKIE_SAME_SITE=none и SESSION_COOKIE_SECURE=true.
+        # Partitioned — чтобы Safari и Firefox не блокировали cookie входа как стороннюю.
+        same-site: ${SESSION_COOKIE_SAME_SITE:lax}
+        secure: ${SESSION_COOKIE_SECURE:false}
+        partitioned: ${SESSION_COOKIE_PARTITIONED:false}
+        http-only: true
 
 management:
   health:
@@ -44,6 +55,9 @@ management:
       show-details: when-authorized
 
 kazbeef:
+  # Адреса интерфейса на другом домене через запятую (CORS). Пусто — интерфейс за прокси на том же домене.
+  cors:
+    origins: ${KAZBEEF_CORS_ORIGINS:}
   admin:
     username: ${ADMIN_USERNAME:admin}
     password: ${ADMIN_PASSWORD}

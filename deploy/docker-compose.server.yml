@@ -1,0 +1,34 @@
+# Дополнение для сервера: HTTPS через Caddy, приложение и база не видны из интернета.
+# Запуск: docker compose -f docker-compose.yml -f deploy/docker-compose.server.yml up -d --build
+services:
+  db:
+    # база доступна только контейнерам; с самого сервера — docker compose exec db psql ...
+    ports: !reset []
+
+  app:
+    # снаружи приложение доступно только через Caddy (HTTPS)
+    ports: !reset []
+    environment:
+      SESSION_COOKIE_SAME_SITE: none
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_PARTITIONED: "true"
+
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      API_HOST: ${API_HOST:?Задайте API_HOST в .env, например 203-0-113-10.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

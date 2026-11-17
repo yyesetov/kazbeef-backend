@@ -2,6 +2,7 @@ package kz.kazbeef.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.userdetails.User;
@@ -25,6 +26,8 @@ public class SecurityConfig {
         // 401 без заголовка WWW-Authenticate: иначе браузер покажет своё окно ввода пароля
         HttpStatusEntryPoint unauthorized = new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED);
         http
+                // правила — в CorsConfig; без KAZBEEF_CORS_ORIGINS запросы с других доменов не разрешены
+                .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/api/csrf").permitAll()
                         // публичный чат по базе знаний: без входа

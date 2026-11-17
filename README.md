@@ -77,6 +77,8 @@ curl http://localhost:8080/actuator/health
 
 Ответ `{"status":"UP"}` — приложение готово. Логи: `docker compose logs -f app`.
 
+> Развёртывание на сервере с HTTPS и интерфейсом на Cloudflare Workers — в [DEPLOY.md](DEPLOY.md).
+
 ### 6. Запустить интерфейс
 
 Интерфейс запускается из своего репозитория (`kazbeef-frontend`, см. его README). По умолчанию он открывается на `http://localhost:3000` и ходит в бэкенд на `http://localhost:8080`. Вход — логином и паролем из `.env`.
