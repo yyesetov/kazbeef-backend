@@ -1,0 +1,31 @@
+### Maven ###
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+### Secrets ###
+.env
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+
+### VS Code ###
+.vscode/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### Интерфейс — отдельный репозиторий ###
+frontend/
+
+### Локальные выгрузки данных ###
+reports/

@@ -1,0 +1,57 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: kazbeef
+      POSTGRES_USER: ${DB_USER:-kazbeef}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d kazbeef"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/kazbeef
+      DB_USER: ${DB_USER:-kazbeef}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Задайте ADMIN_PASSWORD в .env}
+      KAZBEEF_CONTACT_EMAIL: ${KAZBEEF_CONTACT_EMAIL:?Задайте KAZBEEF_CONTACT_EMAIL в .env}
+      WAHIS_ENABLED: ${WAHIS_ENABLED:-true}
+      WAHIS_BASE_URL: ${WAHIS_BASE_URL:-https://wahis.woah.org}
+      IAC_ENABLED: ${IAC_ENABLED:-true}
+      EFSA_ENABLED: ${EFSA_ENABLED:-true}
+      # необязательные: ИИ, оповещения
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      KAZBEEF_AI_MODEL: ${KAZBEEF_AI_MODEL:-claude-haiku-5-5}
+      KAZBEEF_CHAT_MODEL: ${KAZBEEF_CHAT_MODEL:-claude-haiku-5-5}
+      KAZBEEF_KB_DIR: /data/kb
+      KAZBEEF_PUBLIC_URL: ${KAZBEEF_PUBLIC_URL:-http://localhost:8080}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      KAZBEEF_ALERT_EMAIL_TO: ${KAZBEEF_ALERT_EMAIL_TO:-}
+      KAZBEEF_ALERT_EMAIL_FROM: ${KAZBEEF_ALERT_EMAIL_FROM:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - kbdata:/data/kb
+    ports:
+      - "${APP_PORT:-8080}:8080"
+
+volumes:
+  pgdata:
+  kbdata:

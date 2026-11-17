@@ -1,0 +1,154 @@
+spring:
+  application:
+    name: kazbeef
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/kazbeef}
+    username: ${DB_USER:kazbeef}
+    password: ${DB_PASSWORD}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 200MB
+  mail:
+    host: ${SMTP_HOST:}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+management:
+  health:
+    mail:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+kazbeef:
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD}
+  http:
+    # User-Agent с контактом владельца (ФТ-7)
+    user-agent: "kazbeef-monitor/0.1 (+mailto:${KAZBEEF_CONTACT_EMAIL:change-me@example.com})"
+    connect-timeout: 10s
+    read-timeout: 60s
+    max-attempts: 4
+    initial-backoff: 2s
+  collectors:
+    WAHIS:
+      enabled: ${WAHIS_ENABLED:true}
+      # раз в сутки, 03:00 по Алматы
+      cron: "0 0 3 * * *"
+      zone: Asia/Almaty
+    IAC:
+      enabled: ${IAC_ENABLED:true}
+      # сводки ИАЦ выходят по будням; забираем утром и вечером по Алматы
+      cron: "0 15 9,19 * * *"
+      zone: Asia/Almaty
+    EFSA:
+      enabled: ${EFSA_ENABLED:true}
+      cron: "0 40 3 * * *"
+      zone: Asia/Almaty
+  # Оценка риска для Казахстана: максимум баллов по каждому фактору (в сумме 100)
+  risk:
+    # приграничная зона, км: рисуется на карте и используется в оповещениях
+    border-zone-km: 300
+    severity-points: 25
+    proximity-points: 35
+    recency-points: 15
+    status-points: 10
+    magnitude-points: 10
+    trend-points: 5
+    # ежедневный пересчёт (давность события меняется со временем)
+    recompute-cron: "0 30 4 * * *"
+  # ИИ (Claude): перевод на русский и краткое резюме. Без ключа сервис работает без них.
+  ai:
+    api-key: ${ANTHROPIC_API_KEY:}
+    model: ${KAZBEEF_AI_MODEL:claude-opus-5-5}
+    # сколько событий обрабатывать за один проход и как часто
+    batch-size: 10
+    max-attempts: 3
+    cron: "0 */10 * * * *"
+  # База знаний и публичный чат
+  kb:
+    dir: ${KAZBEEF_KB_DIR:/data/kb}
+    chat-model: ${KAZBEEF_CHAT_MODEL:claude-opus-5-5}
+    # фрагментов документа в контексте ответа
+    top-chunks: 8
+    max-question-length: 1000
+    # вопросов в минуту с одного IP
+    rate-per-minute: 10
+    max-answer-tokens: 1500
+  # Оповещения. Канал без настроек отключён.
+  notify:
+    # адрес сервиса в ссылках из сообщений
+    public-url: ${KAZBEEF_PUBLIC_URL:http://localhost:8080}
+    # мгновенное оповещение: событие в Казахстане, в приграничной зоне или с риском не ниже порога
+    risk-threshold: 60
+    # не оповещать о событиях старше стольких дней (важно при первой загрузке истории)
+    max-age-days: 14
+    ruminant-only: true
+    digest-cron: "0 0 9 * * *"
+    telegram:
+      bot-token: ${TELEGRAM_BOT_TOKEN:}
+      chat-id: ${TELEGRAM_CHAT_ID:}
+    email:
+      # получатели через запятую; параметры SMTP — стандартные spring.mail.*
+      to: ${KAZBEEF_ALERT_EMAIL_TO:}
+      from: ${KAZBEEF_ALERT_EMAIL_FROM:}
+  # Межисточниковая дедупликация: одно событие из нескольких источников хранится один раз
+  dedup:
+    enabled: true
+    start-window-days: 7
+    distance-km: 25
+    report-before-days: 5
+    report-after-days: 1
+  # Сообщения Информационно-аналитического центра Россельхознадзора
+  iac:
+    base-url: ${IAC_BASE_URL:https://fsvps.gov.ru}
+    list-path: /jepizooticheskaja-situacija/iac/
+    request-delay: 3s
+    initial-lookback: 90d
+    overlap: 3d
+    # с запасом на догрузку истории за год и больше
+    max-pages: 60
+    # только Казахстан и соседние страны (country.is_priority)
+    priority-only: true
+  # Публикации EFSA (аналитика, без данных о конкретных вспышках)
+  efsa:
+    feeds:
+      - https://www.efsa.europa.eu/en/publications/rss
+      - https://www.efsa.europa.eu/en/press/rss
+    request-delay: 2s
+  # Параметры, специфичные для WAHIS
+  wahis:
+    base-url: ${WAHIS_BASE_URL:https://wahis.woah.org}
+    # ISO3 стран, по которым собираем данные (все болезни)
+    countries: [KAZ, RUS, CHN, KGZ, UZB, TKM, MNG, BLR, ARM, AZE, TJK, MDA, UKR, BRA, PRY]
+    page-size: 100
+    # минимальная пауза между запросами к WAHIS
+    request-delay: 1500ms
+    # глубина первой загрузки, когда успешных запусков ещё не было
+    initial-lookback: 365d
+    # перекрытие окна при повторных запусках, чтобы не пропустить поздно проиндексированные отчёты
+    overlap: 3d
