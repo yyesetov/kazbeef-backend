@@ -1,0 +1,17 @@
+# Вариант для сервера, где порты 80/443 уже заняты другим веб-сервером (nginx, Apache, Caddy и т.п.).
+# KazBeef не занимает 80/443: приложение слушает только 127.0.0.1:APP_PORT, HTTPS делает существующий веб-сервер
+# (пример настройки nginx — deploy/nginx-kazbeef.conf). Другие проекты на сервере не затрагиваются.
+# Запуск: COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.behind-proxy.yml в .env, затем docker compose up -d --build
+services:
+  db:
+    # база доступна только контейнерам проекта
+    ports: !reset []
+
+  app:
+    # только с самого сервера; свободный порт — APP_PORT в .env (по умолчанию 18080)
+    ports: !override
+      - "127.0.0.1:${APP_PORT:-18080}:8080"
+    environment:
+      SESSION_COOKIE_SAME_SITE: none
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_PARTITIONED: "true"
